@@ -4,7 +4,8 @@ PALAVRA_CHAVE
 	:	'algoritmo' | 'fim_algoritmo' | 'declare' | 'literal' | 'inteiro' | 'leia' | 'escreva' 
                 | 'tem' | 'anos' | 'se' | 'fim_se'  | 'registro' | 'fim_registro' | 'falso'
                 | 'verdadeiro' | 'nao' | 'fim_se'   | 'procedimento' | 'fim_procedimento' | 'fim_se' 
-
+                | '<-' | 'ate' | 'retorne' | 'senao'| 'enquanto' | 'fim_enquanto'| 'caso' | 'fim_caso'
+                | 'var'|
         ; 
 
 
@@ -31,20 +32,9 @@ OP_ARIT	:	'+' | '-' | '*' | '/'
 	;
 
 //Simbolos
-DELIM	:	':'
-	;
-ABREPAR :	'('
-	;
-FECHAPAR:	')'
-	;
-ABRECOL :       '['
-        ;
-FECHACOL:       ']'
-        ;
-VIRGULA :       ','
-        ;
-PONTO   :       '.'
-        ;
+SIMBOLOS:       ':' | '=' | ',' | '[' | ']' | '^' | '(' | ')' | '-' | '&' | '..' | '.'
+        ; 
+        
 
 //Comentarios/Espaços em branco
 COMENTARIO: '{' ~('\n' | '\r' | '}')* '}' -> skip;
