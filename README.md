@@ -1,9 +1,9 @@
 # Projeto de Compiladores
 
 ## Alunos:
-- Carlos Henrique Rennó Matos Filho
-- Pedro Cassiano Coleone
-- Pietro Minghini Moralles
+- Carlos Henrique Rennó Matos Filho - RA: 793241
+- Pedro Cassiano Coleone - RA: 793249
+- Pietro Minghini Moralles - RA: 792238
 
 ## Dependências necessárias:
 - Java 17.0.10
