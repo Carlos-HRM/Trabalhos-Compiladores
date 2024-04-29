@@ -46,23 +46,29 @@ public class ReportaErros implements ANTLRErrorListener {
         Token t = (Token) offendingSymbol;
         
         if(qtd_Erros == 0){
+            //Verificação de erros
             if("<EOF>".equals(t.getText())){
+                // Se o token atual for o fim do arquivo ("EOF"), indica um erro sintático próximo ao final do arquivo
                 pw.println("Linha "+line+": erro sintatico proximo a EOF");
                 qtd_Erros = 1;
             }
             else if (t.getType() == LA_T2_COMPILADORESLexer.CADEIA_ABERTA){
+                // Se o token atual for uma cadeia literal não fechada, reporta o erro
                 pw.println("Linha "+line+": cadeia literal nao fechada");
                 qtd_Erros = 1;
             }
             else if (t.getType() == LA_T2_COMPILADORESLexer.COMENTARIO_ABERTO){
+                // Se o token atual for um comentário não fechado, reporta o erro
                 pw.println("Linha "+line+": comentario nao fechado");
                 qtd_Erros = 1;
             }
             else if (t.getType() == LA_T2_COMPILADORESLexer.ERRO){
+                // Se o token atual for um erro, indica um símbolo não identificado
                 pw.println("Linha "+line+": " + t.getText()+ " - simbolo nao identificado");
                 qtd_Erros = 1;
             }
             else {
+                // Se o token não for nenhum dos anteriores, indica um erro sintático próximo ao token atual
                 pw.println("Linha "+line+": erro sintatico proximo a "+t.getText());
                 qtd_Erros = 1;
             }
