@@ -1,4 +1,4 @@
-# Projeto de Compiladores
+# Projeto de Compiladores - T1
 
 ## Alunos:
 - Carlos Henrique Rennó Matos Filho - RA: 793241
