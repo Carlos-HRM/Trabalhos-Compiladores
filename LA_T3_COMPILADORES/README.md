@@ -1,4 +1,4 @@
-# Projeto de Compiladores - T2
+# Projeto de Compiladores - T3
 
 ## Alunos:
 - Carlos Henrique Rennó Matos Filho - RA: 793241
@@ -29,10 +29,10 @@ Para rodar o testador automático, utilize o comando `java -jar` com 7 argumento
 - Arg4: Pasta temporária qualquer
 - Arg5: Arquivo dos casos de teste
 - Arg6: RA dos alunos (Nesse caso, 793241, 793249, 792238)
-- Arg7: O trabalho correspondente (t2)
+- Arg7: O trabalho correspondente (t3)
 
 ```bash
-java -jar /caminho/para/o/corretor.jar "java -jar /caminho/para/o/compilador.jar" gcc /caminho/para/a/pasta_temporaria /caminho/para/o/arquivo_de_testes "793241, 793249, 792238" t2
+java -jar /caminho/para/o/corretor.jar "java -jar /caminho/para/o/compilador.jar" gcc /caminho/para/a/pasta_temporaria /caminho/para/o/arquivo_de_testes "793241, 793249, 792238" t3
 ```
 
 Lembre-se sempre de utilizar os caminhos correspondentes no seu computador!
