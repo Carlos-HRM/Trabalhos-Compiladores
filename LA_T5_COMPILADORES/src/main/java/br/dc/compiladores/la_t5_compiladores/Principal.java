@@ -49,11 +49,11 @@ public class Principal {
             System.err.printf("An unexpected error occurred: %s%n", e.getMessage());
         }
         
-        if(AlgumaSemanticoUtils.errosSemanticos.isEmpty()){
-            AlgumaGeradorC agc = new AlgumaGeradorC();
-            agc.visitPrograma(programTree);
-            try(PrintWriter pw = new PrintWriter(args[1])){
-                pw.print(agc.saida.toString());
+        if(AlgumaSemanticoUtils.errosSemanticos.isEmpty()) {
+                AlgumaGeradorC agc = new AlgumaGeradorC();
+                agc.visitPrograma(programTree);
+                try(PrintWriter pw = new PrintWriter(args[1])) {
+                    pw.print(agc.resultado.toString());
             }
         }
     }
