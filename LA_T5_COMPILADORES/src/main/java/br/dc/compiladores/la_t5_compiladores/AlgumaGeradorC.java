@@ -181,6 +181,21 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
         // Método sem retorno explícito, retorna null
         return null;
     }
+    
+    // Método auxiliar para processar tipos de registro
+    private void processaRegistro(Declaracao_tipoContext ctx) {
+        // Itera sobre cada variável no registro
+        ctx.tipo().registro().variavel().forEach(sub -> {
+            // Itera sobre cada identificador da variável
+            sub.identificador().forEach(idIns -> {
+                TabelaDeSimbolos.TipoAlguma tipoIns = AlgumaSemanticoUtils.getTipoAlguma(sub.tipo().getText());
+                // Adiciona a entrada para cada identificador no registro
+                tabela.adicionar(ctx.IDENT().getText() + "." + idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.VAR);
+                // Adiciona a entrada para o tipo do registro
+                tabela.adicionar(ctx.IDENT().getText(), tabela.new EntradaTabelaDeSimbolos(idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.TIPO));
+            });
+        });
+    }
 
     @Override
     public Void visitDeclaracao_tipo(Declaracao_tipoContext ctx) {
@@ -204,21 +219,6 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
         resultado.append(ctx.IDENT().getText()).append(";\n");
 
         return null;
-    }
-
-    // Método auxiliar para processar tipos de registro
-    private void processaRegistro(Declaracao_tipoContext ctx) {
-        // Itera sobre cada variável no registro
-        ctx.tipo().registro().variavel().forEach(sub -> {
-            // Itera sobre cada identificador da variável
-            sub.identificador().forEach(idIns -> {
-                TabelaDeSimbolos.TipoAlguma tipoIns = AlgumaSemanticoUtils.getTipoAlguma(sub.tipo().getText());
-                // Adiciona a entrada para cada identificador no registro
-                tabela.adicionar(ctx.IDENT().getText() + "." + idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.VAR);
-                // Adiciona a entrada para o tipo do registro
-                tabela.adicionar(ctx.IDENT().getText(), tabela.new EntradaTabelaDeSimbolos(idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.TIPO));
-            });
-        });
     }
     
     @Override
@@ -517,59 +517,70 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
         return null;
     }
     
-    private void processaAtribuicao(String identificador, TabelaDeSimbolos.TipoAlguma tipoVariavel, String valorExpressao) {
-        if (tipoVariavel == TabelaDeSimbolos.TipoAlguma.CADEIA) {
-            // Processa a atribuição de cadeias de caracteres.
-            resultado.append("strcpy(");
-            resultado.append(identificador).append(", ").append(valorExpressao).append(");\n");
-        } else {
-            // Processa a atribuição normal.
-            resultado.append(identificador).append(" = ").append(valorExpressao).append(";\n");
-        }
-    }
-    
     @Override
     public Void visitCmdAtribuicao(CmdAtribuicaoContext ctx) {
         // Verifica se a atribuição é para um ponteiro e adiciona o símbolo '*' à saída.
-        if (ctx.getText().contains("^")) {
+        if (ctx.getText().contains("^"))
             resultado.append("*");
+        try {
+            // Obtém o tipo da variável identificada pela atribuição.
+            TabelaDeSimbolos.TipoAlguma tip = tabela.verificar(ctx.identificador().getText());
+            // Se o tipo for CADEIA, trata como uma atribuição de cadeia de caracteres
+            // (strcpy).
+            if (tip != null && tip == TabelaDeSimbolos.TipoAlguma.CADEIA) {
+                // Adiciona a chamada a 'strcpy' na saída.
+                resultado.append("strcpy(");
+                // Adiciona o identificador da variável e a expressão a ser atribuída na saída.
+                visitIdentificador(ctx.identificador());
+                resultado.append(",").append(ctx.expressao().getText()).append(");\n");
+            } else {
+                // Caso contrário, é uma atribuição normal.
+                // Adiciona o identificador da variável na saída.
+                visitIdentificador(ctx.identificador());
+                // Adiciona o sinal de igual e a expressão a ser atribuída na saída.
+                resultado.append(" = ").append(ctx.expressao().getText()).append(";\n");
+            }
+        } catch (Exception e) {
+            // Em caso de exceção, imprime a mensagem de erro.
+            System.out.println(e.getMessage());
         }
-
-        // Obtém o tipo da variável identificada pela atribuição.
-        TabelaDeSimbolos.TipoAlguma tipoVariavel = tabela.verificar(ctx.identificador().getText());
-
-        // Processa a atribuição com base no tipo da variável.
-        processaAtribuicao(ctx.identificador().getText(), tipoVariavel, ctx.expressao().getText());
-
         // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
     @Override
     public Void visitCmdSe(CmdSeContext ctx) {
-        // Adiciona a estrutura do comando 'if' à saída.
-        resultado.append("if (");
-        visitExpressao(ctx.expressao());
+       
+        
+        resultado.append("if ("); 
+        visitExpressao(ctx.expressao()); 
         resultado.append(") {\n");
-        
-        for (CmdContext cmd : ctx.cmd()) {
-            visitCmd(cmd);
-        }
-        
-        if(ctx.getChild(ctx.getChildCount() - 2).getText().equals("senao")){
-            resultado.append("} else {\n");
-            
-            for(int i = ctx.cmd().size() / 2; i < ctx.cmd().size(); i++){
-                visitCmd(ctx.cmd(i));
-            }
-        }
-        
-        resultado.append("}\n");
-        
 
-        // Não possui retorno explícito, retorna 'null'.
+        for (CmdContext cmdCtx: ctx.cmdIf)
+        {
+            visitCmd(cmdCtx);
+        }
+
+        resultado.append("}\n");
+
+        if (ctx.cmdElse != null){
+            resultado.append("else {\n");
+
+            for (CmdContext cmdCtx : ctx.cmdElse)
+            {
+                visitCmd(cmdCtx);
+            }
+
+            resultado.append("}\n");
+        }
+
         return null;
     }
+
+
+
+
+
     
     @Override
     public Void visitCmdEscreva(CmdEscrevaContext ctx) {
@@ -862,8 +873,7 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
                 resultado.append("break;\n");
             }
         } catch (NumberFormatException e) {
-            // Trata casos em que as constantes não são números inteiros válidos
-            System.err.println("Erro: Intervalo inválido em 'case': " + ctx.constantes().getText());
+            
         }
 
         // Não possui retorno explícito, retorna 'null'.
@@ -892,8 +902,9 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
                  .append(id)
                  .append("++){\n");
 
-            // Visita os comandos dentro do loop "para"
-            ctx.cmd().forEach(this::visitCmd);
+            for(CmdContext cmdCtx: ctx.cmd()){
+                visitCmd(cmdCtx);
+            }
 
             resultado.append("}\n");
         }
