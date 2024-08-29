@@ -100,67 +100,63 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitIdentificador(IdentificadorContext ctx) {
-        // Obtém a lista de identificadores
-        List<TerminalNode> identificadores = ctx.IDENT();
-        // Percorre os identificadores e os adiciona à saída
-        for (int i = 0; i < identificadores.size(); i++) {
-            // Adiciona um ponto antes do identificador, exceto no primeiro
-            if (i > 0) {
+        // Adiciona um espaço à saída.
+        resultado.append(" ");
+        // Variável para controlar o número de identificadores no nó.
+        int i = 0;
+        // Percorre todos os identificadores presentes no contexto.
+        for (TerminalNode id : ctx.IDENT()) {
+            // Se não for o primeiro identificador, adiciona um ponto antes do
+            // identificador.
+            if (i++ > 0)
                 resultado.append(".");
-            }
-            // Adiciona o identificador atual à saída
-            resultado.append(identificadores.get(i).getText());
+            // Adiciona o identificador à saída.
+            resultado.append(id.getText());
         }
-
-        // Visita a dimensão dos identificadores, caso existam
+        // Visita a dimensão dos identificadores, caso existam.
         visitDimensao(ctx.dimensao());
+
         return null;
     }
 
     @Override
     public Void visitDimensao(DimensaoContext ctx) {
-        // Itera sobre cada expressão aritmética no contexto
-        ctx.exp_aritmetica().forEach(exp -> {
-            // Adiciona um colchete de abertura à saída
+        // Percorre todas as expressões aritméticas presentes no contexto.
+        for (Exp_aritmeticaContext exp : ctx.exp_aritmetica()) {
+            // Adiciona um colchete de abertura à saída.
             resultado.append("[");
-            // Visita a expressão aritmética e a adiciona à saída
+            // Visita a expressão aritmética para processá-la e adicioná-la à saída.
             visitExp_aritmetica(exp);
-            // Adiciona um colchete de fechamento à saída
+            // Adiciona um colchete de fechamento à saída.
             resultado.append("]");
-        });
+        }
 
         return null;
     }
     
     @Override
     public Void visitParametro(ParametroContext ctx) {
-        // Obtém o tipo C e o tipo Alguma dos parâmetros
+        // Variável para controlar o número de parâmetros no contexto.
+        int i = 0;
+        // Obtém o tipo C correspondente ao tipo estendido dos parâmetros.
         String cTipo = AlgumaSemanticoUtils.obterTipoC(ctx.tipo_estendido().getText().replace("^", ""));
+        // Obtém o tipo Alguma dos parâmetros.
         TabelaDeSimbolos.TipoAlguma tipo = AlgumaSemanticoUtils.getTipoAlguma(ctx.tipo_estendido().getText());
-
-        // Percorre os identificadores presentes no contexto
-        for (int i = 0; i < ctx.identificador().size(); i++) {
-            IdentificadorContext id = ctx.identificador().get(i);
-
-            // Adiciona uma vírgula antes do identificador, exceto no primeiro parâmetro
-            if (i > 0) {
+        // Percorre todos os identificadores presentes no contexto.
+        for (IdentificadorContext id : ctx.identificador()) {
+            // Se não for o primeiro parâmetro, adiciona uma vírgula antes do identificador.
+            if (i++ > 0)
                 resultado.append(",");
-            }
-
-            // Processa o tipo estendido e o adiciona à saída
+            // Visita o tipo estendido dos parâmetros para processá-lo e adicioná-lo à
+            // saída.
             visitTipo_estendido(ctx.tipo_estendido());
-            
-            resultado.append(" ");
-
-            // Processa o identificador e o adiciona à saída
+            // Visita o identificador dos parâmetros para processá-lo e adicioná-lo à saída.
             visitIdentificador(id);
-
-            // Se o tipo for char, adiciona o tamanho [80] ao parâmetro
-            if ("char".equals(cTipo)) {
+            // Se o tipo for char, adiciona o tamanho [80] ao parâmetro.
+            if (cTipo.equals("char")) {
                 resultado.append("[80]");
             }
-
-            // Adiciona o identificador e o tipo à tabela de símbolos como uma variável
+            // Adiciona o identificador e o tipo à tabela de símbolos como variável.
             tabela.adicionar(id.getText(), tipo, TabelaDeSimbolos.Structure.VAR);
         }
 
@@ -169,57 +165,79 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
 
     @Override
     public Void visitDeclaracao_local(Declaracao_localContext ctx) {
-        // Processa a declaração de variável, se presente
+        // Verifica se a declaração local é uma declaração de variável.
         if (ctx.declaracao_var() != null) {
+            // Visita a declaração de variável para processá-la.
             visitDeclaracao_var(ctx.declaracao_var());
         }
+        // Verifica se a declaração local é uma declaração de constante.
         if (ctx.declaracao_const() != null) {
+            // Visita a declaração de constante para processá-la.
             visitDeclaracao_const(ctx.declaracao_const());
         } else if (ctx.declaracao_tipo() != null) {
+            // Caso contrário, verifica se é uma declaração de tipo e visita-a para
+            // processá-la.
             visitDeclaracao_tipo(ctx.declaracao_tipo());
         }
-        // Método sem retorno explícito, retorna null
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
-    // Método auxiliar para processar tipos de registro
-    private void processaRegistro(Declaracao_tipoContext ctx) {
-        // Itera sobre cada variável no registro
-        ctx.tipo().registro().variavel().forEach(sub -> {
-            // Itera sobre cada identificador da variável
-            sub.identificador().forEach(idIns -> {
-                TabelaDeSimbolos.TipoAlguma tipoIns = AlgumaSemanticoUtils.getTipoAlguma(sub.tipo().getText());
-                // Adiciona a entrada para cada identificador no registro
-                tabela.adicionar(ctx.IDENT().getText() + "." + idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.VAR);
-                // Adiciona a entrada para o tipo do registro
-                tabela.adicionar(ctx.IDENT().getText(), tabela.new EntradaTabelaDeSimbolos(idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.TIPO));
-            });
-        });
-    }
-
     @Override
     public Void visitDeclaracao_tipo(Declaracao_tipoContext ctx) {
-        // Adiciona 'typedef' à saída para definir um novo tipo
+        // Adiciona a palavra-chave 'typedef' à saída.
         resultado.append("typedef ");
-
-        // Obtém o tipo C e o tipo Alguma da declaração de tipo
+        // Obtém o tipo C correspondente ao tipo da declaração de tipo.
         String cTipo = AlgumaSemanticoUtils.obterTipoC(ctx.tipo().getText().replace("^", ""));
+        // Obtém o tipo Alguma da declaração de tipo.
         TabelaDeSimbolos.TipoAlguma tipo = AlgumaSemanticoUtils.getTipoAlguma(ctx.tipo().getText());
 
-        // Verifica se a declaração de tipo é um registro
+        // Verifica se a declaração de tipo é uma declaração de registro.
         if (ctx.tipo().getText().contains("registro")) {
-            processaRegistro(ctx);
+            // Para cada subvariável do registro, adiciona os identificadores e seus tipos
+            // na tabela de símbolos.
+            for (VariavelContext sub : ctx.tipo().registro().variavel()) {
+                for (IdentificadorContext idIns : sub.identificador()) {
+                    TabelaDeSimbolos.TipoAlguma tipoIns = AlgumaSemanticoUtils.getTipoAlguma(sub.tipo().getText());
+                    tabela.adicionar(ctx.IDENT().getText() + "." + idIns.getText(), tipoIns,
+                            TabelaDeSimbolos.Structure.VAR);
+                    tabela.adicionar(ctx.IDENT().getText(), tabela.new EntradaTabelaDeSimbolos(idIns.getText(), tipoIns,
+                            TabelaDeSimbolos.Structure.TIPO));
+                }
+            }
         }
-
-        // Adiciona o tipo declarado e o nome do tipo à tabela de símbolos
+        // Adiciona o tipo declarado e o nome do tipo à tabela de símbolos como
+        // variável.
         tabela.adicionar(ctx.IDENT().getText(), tipo, TabelaDeSimbolos.Structure.VAR);
-
-        // Processa o tipo da declaração e adiciona o nome do tipo à saída
+        // Visita o tipo da declaração para processá-lo.
         visitTipo(ctx.tipo());
-        resultado.append(ctx.IDENT().getText()).append(";\n");
-
+        // Adiciona o nome do tipo e um ponto-e-vírgula à saída.
+        resultado.append(ctx.IDENT() + ";\n");
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
+    
+    @Override
+    public Void visitDeclaracao_const(Declaracao_constContext ctx) {
+        // Obtém o tipo C correspondente ao tipo básico da constante e o tipo Alguma do
+        // contexto.
+        System.out.println(ctx.tipo_basico().getText());
+        String type = AlgumaSemanticoUtils.obterTipoC(ctx.tipo_basico().getText());
+        TabelaDeSimbolos.TipoAlguma typeVar = AlgumaSemanticoUtils.getTipoAlguma(ctx.tipo_basico().getText());
+        // Adiciona a constante à tabela de símbolos com o tipo Alguma e a estrutura de
+        // variável.
+        tabela.adicionar(ctx.IDENT().getText(), typeVar, TabelaDeSimbolos.Structure.VAR);
+        // Adiciona a declaração constante com a palavra-chave 'const' seguida do tipo C
+        // e do identificador à saída.
+        resultado.append("const " + type + " " + ctx.IDENT().getText() + " = ");
+        // Visita o valor constante para processá-lo.
+        visitValor_constante(ctx.valor_constante());
+        // Adiciona o ponto-e-vírgula ao final da declaração de constante.
+        resultado.append(";\n");
+        // Não possui retorno explícito, retorna 'null'.
+        return null;
+    }
+   
     
     @Override
     public Void visitDeclaracao_var(Declaracao_varContext ctx) {
@@ -230,96 +248,94 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitVariavel(VariavelContext ctx) {
-        // Obtém o tipo C correspondente ao tipo da variável e o tipo Alguma
+        // Obtém o tipo C correspondente ao tipo da variável.
         String cTipo = AlgumaSemanticoUtils.obterTipoC(ctx.tipo().getText().replace("^", ""));
+        // Obtém o tipo Alguma da variável.
         TabelaDeSimbolos.TipoAlguma tipo = AlgumaSemanticoUtils.getTipoAlguma(ctx.tipo().getText());
-
-        // Processa cada identificador no contexto da variável
+        // Percorre todos os identificadores presentes no contexto.
         for (AlgumaParser.IdentificadorContext id : ctx.identificador()) {
-            String idText = id.getText();
-
-            // Processa se a variável for um subcampo de um registro
+            // Verifica se a variável é uma subvariável de um registro.
             if (ctx.tipo().getText().contains("registro")) {
+                // Para cada subvariável do registro, adiciona os identificadores e seus tipos
+                // na tabela de símbolos.
                 for (VariavelContext sub : ctx.tipo().registro().variavel()) {
                     for (IdentificadorContext idIns : sub.identificador()) {
                         TabelaDeSimbolos.TipoAlguma tipoIns = AlgumaSemanticoUtils.getTipoAlguma(sub.tipo().getText());
-                        tabela.adicionar(idText + "." + idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.VAR);
+                        tabela.adicionar(id.getText() + "." + idIns.getText(), tipoIns, TabelaDeSimbolos.Structure.VAR);
                     }
                 }
             }
-            // Processa se a variável for de um tipo definido pelo usuário
+            // Verifica se a variável é um tipo definido pelo usuário e se sim, adiciona
+            // seus membros à tabela de símbolos.
             else if (cTipo == null && tipo == null) {
-                ArrayList<TabelaDeSimbolos.EntradaTabelaDeSimbolos> tipoEntradas = tabela.retornaTipo(ctx.tipo().getText());
-                if (tipoEntradas != null) {
-                    for (TabelaDeSimbolos.EntradaTabelaDeSimbolos val : tipoEntradas) {
-                        tabela.adicionar(idText + "." + val.nome, val.tipo, TabelaDeSimbolos.Structure.VAR);
+                ArrayList<EntradaTabelaDeSimbolos> arg = tabela.retornaTipo(ctx.tipo().getText());
+                if (arg != null) {
+                    for (TabelaDeSimbolos.EntradaTabelaDeSimbolos val : arg) {
+                        tabela.adicionar(id.getText() + "." + val.nome, val.tipo, TabelaDeSimbolos.Structure.VAR);
                     }
                 }
             }
-            // Processa se a variável for um vetor
-            else if (idText.contains("[")) {
-                int ini = idText.indexOf("[");
-                int end = idText.indexOf("]");
-                String tamanho = idText.substring(ini + 1, end);
+            // Verifica se a variável é um vetor e, se sim, adiciona suas posições à tabela
+            // de símbolos.
+            if (id.getText().contains("[")) {
+                int ini = id.getText().indexOf("[", 0);
+                int end = id.getText().indexOf("]", 0);
+                String tam;
+                if (end - ini == 2)
+                    tam = String.valueOf(id.getText().charAt(ini + 1));
+                else
+                    tam = id.getText().substring(ini + 1, end - 1);
                 String nome = id.IDENT().get(0).getText();
-                int tam = Integer.parseInt(tamanho);
-                for (int i = 0; i < tam; i++) {
+                for (int i = 0; i < Integer.parseInt(tam); i++) {
                     tabela.adicionar(nome + "[" + i + "]", tipo, TabelaDeSimbolos.Structure.VAR);
                 }
-            } 
-            // Adiciona a variável normalmente à tabela de símbolos
-            else {
-                tabela.adicionar(idText, tipo, TabelaDeSimbolos.Structure.VAR);
+
             }
-
-            // Visita o tipo e o identificador da variável
+            // Caso contrário, adiciona a variável normalmente à tabela de símbolos.
+            else {
+                tabela.adicionar(id.getText(), tipo, TabelaDeSimbolos.Structure.VAR);
+            }
+            // Visita o tipo da variável para processá-lo.
             visitTipo(ctx.tipo());
+            // Visita o identificador da variável para processá-lo.
             visitIdentificador(id);
-
-            // Adiciona notação para tipo char se necessário
-            if ("char".equals(cTipo)) {
+            // Se o tipo for char, adiciona o tamanho [80] à variável na saída.
+            if (cTipo == "char") {
                 resultado.append("[80]");
             }
-
-            // Adiciona um ponto e vírgula à declaração
+            // Adiciona um ponto-e-vírgula ao final da declaração da variável na saída.
             resultado.append(";\n");
         }
-
-        // Retorna 'null' pois o método não possui um valor de retorno
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
-       @Override
+    @Override
     public Void visitTipo(TipoContext ctx) {
-        // Extrai o tipo C e o tipo Alguma a partir do texto do contexto.
+        // Obtém o tipo C correspondente ao tipo da declaração e o tipo Alguma do
+        // contexto.
         String cTipo = AlgumaSemanticoUtils.obterTipoC(ctx.getText().replace("^", ""));
         TabelaDeSimbolos.TipoAlguma tipo = AlgumaSemanticoUtils.getTipoAlguma(ctx.getText());
-
-        // Determina se o tipo é um ponteiro.
-        boolean isPointer = ctx.getText().contains("^");
-
-        // Adiciona o tipo C correspondente à saída, se disponível.
+        // Verifica se o tipo é um ponteiro.
+        boolean pointer = ctx.getText().contains("^");
+        // Se o tipo for um tipo primitivo, adiciona o tipo C correspondente à saída.
         if (cTipo != null) {
             resultado.append(cTipo);
-        } 
-        // Se o tipo for um registro, processa-o.
+        }
+        // Se o tipo for um registro, visita o nó de registro para processá-lo.
         else if (ctx.registro() != null) {
             visitRegistro(ctx.registro());
-        } 
-        // Caso contrário, processa o tipo estendido.
+        }
+        // Caso contrário, visita o tipo estendido para processá-lo.
         else {
             visitTipo_estendido(ctx.tipo_estendido());
         }
-
-        // Se for um ponteiro, adiciona o asterisco (*) à saída.
-        if (isPointer) {
+        // Se o tipo for um ponteiro, adiciona o asterisco (*) à saída.
+        if (pointer)
             resultado.append("*");
-        }
-
-        // Adiciona um espaço em branco para a formatação.
+        // Adiciona um espaço em branco à saída.
         resultado.append(" ");
-
-        // Retorna 'null' pois não há valor de retorno.
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
@@ -352,61 +368,29 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitRegistro(RegistroContext ctx) {
-        // Adiciona 'struct {' seguido por uma quebra de linha.
+        // Adiciona a palavra-chave 'struct' seguida de uma quebra de linha à saída.
         resultado.append("struct {\n");
-
-        // Processa cada variável no registro.
-        for (VariavelContext var : ctx.variavel()) {
-            visitVariavel(var);
-        }
-
-        // Adiciona a chave de fechamento '}' e um espaço em branco.
+        // Visita cada variável do registro para processá-las.
+        ctx.variavel().forEach(var -> visitVariavel(var));
+        // Adiciona a chave de fechamento do registro seguida de um espaço em branco à
+        // saída.
         resultado.append("} ");
-
-        // Retorno nulo para métodos que não precisam retornar valor.
+        // Não possui retorno explícito, retorna 'null'.
         return null;
-    }
-
-    @Override
-    public Void visitDeclaracao_const(Declaracao_constContext ctx) {
-        // Obtém o tipo C e o tipo Alguma da constante a partir do tipo básico.
-        String tipoC = AlgumaSemanticoUtils.obterTipoC(ctx.tipo_basico().getText());
-        TabelaDeSimbolos.TipoAlguma tipoAlguma = AlgumaSemanticoUtils.getTipoAlguma(ctx.tipo_basico().getText());
-
-        // Adiciona a constante à tabela de símbolos com o tipo Alguma e a estrutura de variável.
-        tabela.adicionar(ctx.IDENT().getText(), tipoAlguma, TabelaDeSimbolos.Structure.VAR);
-
-        // Adiciona a declaração constante à saída, começando com 'const', seguido do tipo C e do identificador.
-        resultado.append("const ").append(tipoC).append(" ").append(ctx.IDENT().getText()).append(" = ");
-
-        // Adiciona o valor da constante à saída.
-        visitValor_constante(ctx.valor_constante());
-
-        // Finaliza a declaração com um ponto-e-vírgula.
-        resultado.append(";\n");
-
-        // Retorno nulo para métodos que não precisam retornar valor.
-        return null;
-    }
-    
-    private void adicionarValorConstante(String valorTexto) {
-        switch (valorTexto) {
-            case "verdadeiro":
-                resultado.append("true");
-                break;
-            case "falso":
-                resultado.append("false");
-                break;
-            default:
-                resultado.append(valorTexto);
-                break;
-        }
     }
     
     @Override
     public Void visitValor_constante(Valor_constanteContext ctx) {
-        // Processa o valor constante e adiciona à saída.
-        adicionarValorConstante(ctx.getText());
+        // Verifica o valor constante do contexto e adiciona o valor correspondente à
+        // saída.
+        if (ctx.getText().equals("verdadeiro")) {
+            resultado.append("true");
+        } else if (ctx.getText().equals("falso")) {
+            resultado.append("false");
+        } else {
+            resultado.append(ctx.getText());
+        }
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
@@ -443,77 +427,57 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
 
     @Override
     public Void visitCmdRetorne(CmdRetorneContext ctx) {
-        // Adiciona a palavra-chave 'return' ao código de saída.
+        // Adiciona a palavra-chave 'return' à saída seguida da expressão a ser
+        // retornada.
         resultado.append("return ");
-
-        // Verifica se há uma expressão para retornar.
-        if (ctx.expressao() != null) {
-            // Visita a expressão para processá-la e adicioná-la à saída.
-            visitExpressao(ctx.expressao());
-        } else {
-            // Se não houver expressão, adiciona um retorno vazio.
-            resultado.append(";");
-            return null; // Retorna após adicionar o ponto-e-vírgula.
-        }
-
-        // Adiciona o ponto-e-vírgula ao final do comando 'return'.
+        // Visita a expressão para processá-la.
+        visitExpressao(ctx.expressao());
+        // Adiciona o ponto-e-vírgula ao final do comando 'retorne'.
         resultado.append(";\n");
-
-        // Retorna 'null' indicando que o método não tem valor de retorno.
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
 
+    
     @Override
     public Void visitCmdChamada(CmdChamadaContext ctx) {
-        // Adiciona o nome da função à saída e abre o parêntese.
+        // Adiciona o nome da chamada de função à saída.
         resultado.append(ctx.IDENT().getText()).append("(");
-
-        // Obtém a lista de expressões passadas como argumentos para a função.
-        List<ExpressaoContext> expressoes = ctx.expressao();
-
-        // Itera sobre cada expressão para adicioná-la como argumento.
-        for (int i = 0; i < expressoes.size(); i++) {
-            if (i > 0) {
-                // Adiciona uma vírgula entre os argumentos.
+        int i = 0;
+        // Percorre as expressões de argumentos da chamada de função.
+        for (ExpressaoContext exp : ctx.expressao()) {
+            if (i++ > 0)
                 resultado.append(",");
-            }
-            // Adiciona a expressão à saída.
-            visitExpressao(expressoes.get(i));
+            // Visita a expressão e adiciona à saída.
+            visitExpressao(exp);
         }
-
-        // Fecha o parêntese da chamada de função e adiciona o ponto e vírgula.
+        // Adiciona o fechamento da chamada de função e ponto e vírgula à saída.
         resultado.append(");\n");
-
-        // Retorna null indicando que o método não possui valor de retorno.
+        // Não possui retorno explícito, retorna 'null'.
         return null;
-    }
-    
-    private void processaIdentificadorParaLeitura(AlgumaParser.IdentificadorContext id, TabelaDeSimbolos.TipoAlguma idType) {
-        // Verifica o tipo do identificador e decide o método de leitura.
-        if (idType != TabelaDeSimbolos.TipoAlguma.CADEIA) {
-            // Usa 'scanf' para tipos diferentes de CADEIA.
-            resultado.append("scanf(\"%").append(AlgumaSemanticoUtils.obterSimboloC(idType)).append("\", &")
-                .append(id.getText()).append(");\n");
-        } else {
-            // Usa 'gets' para tipo CADEIA.
-            resultado.append("gets(");
-            visitIdentificador(id);
-            resultado.append(");\n");
-        }
     }
     
     @Override
     public Void visitCmdLeia(CmdLeiaContext ctx) {
-        // Itera sobre cada identificador na lista de identificadores para leitura.
+        // Percorre cada identificador da lista de identificadores para leitura.
         for (AlgumaParser.IdentificadorContext id : ctx.identificador()) {
-            // Obtém o tipo do identificador a partir da tabela de símbolos.
+            // Verifica o tipo do identificador na tabela de símbolos.
             TabelaDeSimbolos.TipoAlguma idType = tabela.verificar(id.getText());
-
-            // Processa o identificador com base no seu tipo.
-            processaIdentificadorParaLeitura(id, idType);
+            // Verifica se o tipo é diferente de CADEIA, para usar 'scanf'.
+            if (idType != TabelaDeSimbolos.TipoAlguma.CADEIA) {
+                // Adiciona a string de formatação para 'scanf' na saída.
+                resultado.append("scanf(\"%").append(AlgumaSemanticoUtils.obterSimboloC(idType)).append("\", &");
+                // Adiciona o nome do identificador e ponto e vírgula à saída.
+                resultado.append(id.getText()).append(");\n");
+            } else {
+                // Se o tipo for CADEIA, usa 'gets' para leitura.
+                resultado.append("gets(");
+                // Visita o identificador para adicionar à saída.
+                visitIdentificador(id);
+                resultado.append(");\n");
+            }
         }
-
-        // Retorna null indicando que o método não possui valor de retorno.
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
@@ -578,78 +542,92 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     }
 
 
-
-
-
-    
     @Override
     public Void visitCmdEscreva(CmdEscrevaContext ctx) {
         // Percorre cada expressão a ser escrita.
         for (AlgumaParser.ExpressaoContext exp : ctx.expressao()) {
+            // Cria um novo escopo para verificar o tipo da expressão.
             Escopos escopo = new Escopos(tabela);
-
             // Obtém o símbolo do tipo da expressão em formato de caractere.
             String cType = AlgumaSemanticoUtils.obterSimboloC(AlgumaSemanticoUtils.analisarExpressao(escopo, exp));
-            
+            // Se a expressão já existe na tabela de símbolos, verifica seu tipo.
             if (tabela.existe(exp.getText())) {
                 TabelaDeSimbolos.TipoAlguma tip = tabela.verificar(exp.getText());
                 cType = AlgumaSemanticoUtils.obterSimboloC(tip);
             }
-
             // Adiciona a string de formatação para 'printf' na saída.
             resultado.append("printf(\"%").append(cType).append("\", ");
             // Adiciona a expressão a ser escrita na saída.
-            resultado.append(exp.getText()).append(");\n");
+            resultado.append(exp.getText());
+            resultado.append(");\n");
         }
         // Não possui retorno explícito, retorna 'null'.
         return null;
     }
 
+
     
     @Override
     public Void visitExpressao(ExpressaoContext ctx) {
         // Verifica se a expressão possui termos lógicos.
-        if (ctx.termo_logico() != null && !ctx.termo_logico().isEmpty()) {
-            // Visita e adiciona o primeiro termo lógico à saída.
+        if (ctx.termo_logico() != null) {
+            // Adiciona o primeiro termo lógico na saída.
             visitTermo_logico(ctx.termo_logico(0));
 
-            // Percorre os termos lógicos restantes e os adiciona à saída com o operador '||' (ou).
+            // Percorre os termos lógicos restantes e os adiciona à saída com o operador
+            // '||' (ou).
             for (int i = 1; i < ctx.termo_logico().size(); i++) {
+                AlgumaParser.Termo_logicoContext termo = ctx.termo_logico(i);
                 resultado.append(" || ");
-                visitTermo_logico(ctx.termo_logico(i));
+                visitTermo_logico(termo);
             }
         }
-
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
     @Override
     public Void visitTermo_logico(Termo_logicoContext ctx) {
-        // Verifica se há fatores lógicos na expressão.
-        if (ctx.fator_logico() != null && !ctx.fator_logico().isEmpty()) {
-            // Adiciona o primeiro fator lógico na saída.
-            visitFator_logico(ctx.fator_logico(0));
+        // Adiciona o primeiro fator lógico na saída.
+        visitFator_logico(ctx.fator_logico(0));
 
-            // Percorre os fatores lógicos restantes e os adiciona à saída com o operador '&&' (e).
-            for (int i = 1; i < ctx.fator_logico().size(); i++) {
-                resultado.append(" && ");
-                visitFator_logico(ctx.fator_logico(i));
-            }
+        // Percorre os fatores lógicos restantes e os adiciona à saída com o operador
+        // '&&' (e).
+        for (int i = 1; i < ctx.fator_logico().size(); i++) {
+            AlgumaParser.Fator_logicoContext fator = ctx.fator_logico(i);
+            resultado.append(" && ");
+            visitFator_logico(fator);
         }
 
+        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
     @Override
+    public Void visitFator_logico(Fator_logicoContext ctx) {
+        // Verifica se o fator lógico possui o operador 'nao' (não) e adiciona '!' na
+        // saída.
+        if (ctx.getText().startsWith("nao")) {
+            resultado.append("!");
+        }
+        // Visita a parcela lógica do fator lógico.
+        visitParcela_logica(ctx.parcela_logica());
+
+        // Não possui retorno explícito, retorna 'null'.
+        return null;
+    }
+    
+    
+    @Override
     public Void visitParcela_logica(Parcela_logicaContext ctx) {
-        // Verifica se a parcela lógica é uma expressão relacional.
+        // Verifica se a parcela lógica possui uma expressão relacional.
         if (ctx.exp_relacional() != null) {
-            // Visita e adiciona a expressão relacional à saída.
+            // Visita a expressão relacional e a adiciona à saída.
             visitExp_relacional(ctx.exp_relacional());
         } else {
-            // Verifica se o texto da parcela lógica é 'verdadeiro' ou 'falso'.
-            String text = ctx.getText();
-            if ("verdadeiro".equals(text)) {
+            // Caso não haja expressão relacional, verifica se a parcela é 'verdadeiro' ou
+            // 'falso'.
+            if (ctx.getText().equals("verdadeiro")) {
                 resultado.append("true");
             } else {
                 resultado.append("false");
@@ -659,43 +637,57 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
         // Não possui retorno explícito, retorna 'null'.
         return null;
     }
-
+    
     @Override
     public Void visitExp_relacional(Exp_relacionalContext ctx) {
-        // Adiciona a primeira expressão aritmética à saída.
+        // Adiciona a primeira expressão aritmética na saída.
         visitExp_aritmetica(ctx.exp_aritmetica(0));
 
-        // Verifica se há operadores relacionais associados.
-        if (ctx.op_relacional() != null) {
-            // Percorre os operadores relacionais e as expressões aritméticas restantes.
-            for (int i = 1; i < ctx.exp_aritmetica().size(); i++) {
-                if(ctx.op_relacional().getText().equals("=")){
-                    resultado.append(" == ");
-                }else{
-                    resultado.append(ctx.op_relacional().getText());
-                }
-                // Adiciona a expressão aritmética correspondente à saída.
-                visitExp_aritmetica(ctx.exp_aritmetica(i));
+        // Percorre as demais expressões aritméticas e operadores relacionais e os
+        // adiciona à saída.
+        for (int i = 1; i < ctx.exp_aritmetica().size(); i++) {
+            AlgumaParser.Exp_aritmeticaContext termo = ctx.exp_aritmetica(i);
+            if (ctx.op_relacional().getText().equals("=")) {
+                resultado.append(" == ");
+            } else {
+                resultado.append(ctx.op_relacional().getText());
             }
+            visitExp_aritmetica(termo);
         }
 
         // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
+//    @Override
+//    public Void visitExp_aritmetica(Exp_aritmeticaContext ctx) {
+//        // Adiciona o primeiro termo à saída.
+//        visitTermo(ctx.termo(0));
+//
+//        // Verifica se há operadores aritméticos e adiciona os demais termos com esses operadores à saída.
+//        if (ctx.op1() != null) {
+//            for (int i = 0; i < ctx.op1().size(); i++) {
+//                // Adiciona o operador aritmético à saída.
+//                resultado.append(ctx.op1(i).getText());
+//                // Adiciona o próximo termo à saída.
+//                visitTermo(ctx.termo(i + 1));
+//            }
+//        }
+//
+//        // Não possui retorno explícito, retorna 'null'.
+//        return null;
+//    }
+    
     @Override
     public Void visitExp_aritmetica(Exp_aritmeticaContext ctx) {
-        // Adiciona o primeiro termo à saída.
+        // Adiciona o primeiro termo na saída.
         visitTermo(ctx.termo(0));
 
-        // Verifica se há operadores aritméticos e adiciona os demais termos com esses operadores à saída.
-        if (ctx.op1() != null) {
-            for (int i = 0; i < ctx.op1().size(); i++) {
-                // Adiciona o operador aritmético à saída.
-                resultado.append(ctx.op1(i).getText());
-                // Adiciona o próximo termo à saída.
-                visitTermo(ctx.termo(i + 1));
-            }
+        // Percorre os demais termos e operadores aritméticos e os adiciona à saída.
+        for (int i = 1; i < ctx.termo().size(); i++) {
+            AlgumaParser.TermoContext termo = ctx.termo(i);
+            resultado.append(ctx.op1(i - 1).getText());
+            visitTermo(termo);
         }
 
         // Não possui retorno explícito, retorna 'null'.
@@ -704,17 +696,14 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
 
     @Override
     public Void visitTermo(TermoContext ctx) {
-        // Adiciona o primeiro fator à saída.
+        // Adiciona o primeiro fator na saída.
         visitFator(ctx.fator(0));
 
-        // Verifica se há operadores multiplicativos ('*' ou '/') e adiciona os demais fatores com esses operadores à saída.
-        if (ctx.op2() != null) {
-            for (int i = 0; i < ctx.op2().size(); i++) {
-                // Adiciona o operador '*' ou '/' à saída.
-                resultado.append(ctx.op2(i).getText());
-                // Adiciona o próximo fator à saída.
-                visitFator(ctx.fator(i + 1));
-            }
+        // Percorre os demais fatores e operadores '*' ou '/' e os adiciona à saída.
+        for (int i = 1; i < ctx.fator().size(); i++) {
+            AlgumaParser.FatorContext fator = ctx.fator(i);
+            resultado.append(ctx.op2(i - 1).getText());
+            visitFator(fator);
         }
 
         // Não possui retorno explícito, retorna 'null'.
@@ -723,17 +712,14 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitFator(FatorContext ctx) {
-        // Adiciona a primeira parcela à saída.
+        // Adiciona a primeira parcela na saída.
         visitParcela(ctx.parcela(0));
 
-        // Verifica se há operadores aditivos ('+' ou '-') e processa as demais parcelas.
-        if (ctx.op3() != null) {
-            for (int i = 0; i < ctx.op3().size(); i++) {
-                // Adiciona o operador '+' ou '-' à saída.
-                resultado.append(ctx.op3(i).getText());
-                // Adiciona a próxima parcela à saída.
-                visitParcela(ctx.parcela(i + 1));
-            }
+        // Percorre as demais parcelas e operadores '+' ou '-' e os adiciona à saída.
+        for (int i = 1; i < ctx.parcela().size(); i++) {
+            AlgumaParser.ParcelaContext parcela = ctx.parcela(i);
+            resultado.append(ctx.op3(i - 1).getText());
+            visitParcela(parcela);
         }
 
         // Não possui retorno explícito, retorna 'null'.
@@ -742,16 +728,12 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitParcela(ParcelaContext ctx) {
-        // Verifica se a parcela é unária.
         if (ctx.parcela_unario() != null) {
-            // Adiciona o operador unário, se presente.
             if (ctx.op_unario() != null) {
                 resultado.append(ctx.op_unario().getText());
             }
-            // Visita a parcela unária.
             visitParcela_unario(ctx.parcela_unario());
         } else {
-            // Visita a parcela não unária.
             visitParcela_nao_unario(ctx.parcela_nao_unario());
         }
 
@@ -761,23 +743,23 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitParcela_unario(Parcela_unarioContext ctx) {
-        // Verifica se a parcela unária é uma chamada de função.
+
         if (ctx.IDENT() != null) {
-            // Adiciona o nome da função à saída.
-            resultado.append(ctx.IDENT().getText()).append("(");
-            // Processa as expressões de argumentos, adicionando-as à saída separadas por vírgula.
+            resultado.append(ctx.IDENT().getText());
+            resultado.append("(");
             for (int i = 0; i < ctx.expressao().size(); i++) {
                 visitExpressao(ctx.expressao(i));
                 if (i < ctx.expressao().size() - 1) {
                     resultado.append(", ");
                 }
             }
-            // Fecha a chamada de função.
             resultado.append(")");
-        // Verifica se a parcela unária é uma expressão entre parênteses.
+        } else if (ctx.parentesis_expressao() != null) {
+            resultado.append("(");
+            visitExpressao(ctx.parentesis_expressao().expressao());
+            resultado.append(")");
         } else {
             resultado.append(ctx.getText());
-        // Caso contrário, trata a parcela como um valor literal ou identificador simples.
         }
 
         // Não possui retorno explícito, retorna 'null'.
@@ -842,41 +824,25 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     
     @Override
     public Void visitSelecao(SelecaoContext ctx) {
-        // Itera sobre cada item de seleção e o processa.
-        for (AlgumaParser.Item_selecaoContext item : ctx.item_selecao()) {
-            visitItem_selecao(item);
-        }
-        // Não possui retorno explícito, retorna 'null'.
+        ctx.item_selecao().forEach(var -> visitItem_selecao(var));
         return null;
     }
     
     @Override
     public Void visitItem_selecao(Item_selecaoContext ctx) {
         // Divide a constante em uma lista de intervalo (se houver)
-        List<String> intervalo = Arrays.asList(ctx.constantes().getText().split("\\.\\."));
-
-        // Obtém o primeiro valor do intervalo (ou único valor caso não haja intervalo)
-        String first = intervalo.get(0);
-        String last = intervalo.size() > 1 ? intervalo.get(1) : first;
-
-        try {
-            // Itera sobre os valores no intervalo e gera código para cada um deles
-            int start = Integer.parseInt(first);
-            int end = Integer.parseInt(last);
-
-            for (int i = start; i <= end; i++) {
-                resultado.append("case ").append(i).append(":\n");
-                // Visita os comandos dentro do ramo "caso"
-                for (CmdContext cmd : ctx.cmd()) {
-                    visitCmd(cmd);
-                }
-                resultado.append("break;\n");
-            }
-        } catch (NumberFormatException e) {
-            
+        ArrayList<String> intervalo = new ArrayList<>(Arrays.asList(ctx.constantes().getText().split("\\.\\.")));
+        // Obtém o primeiro e o último valor do intervalo, ou o único valor caso não
+        // haja intervalo
+        String first = intervalo.size() > 0 ? intervalo.get(0) : ctx.constantes().getText();
+        String last = intervalo.size() > 1 ? intervalo.get(1) : intervalo.get(0);
+        // Itera sobre os valores no intervalo e gera código para cada um deles
+        for (int i = Integer.parseInt(first); i <= Integer.parseInt(last); i++) {
+            resultado.append("case " + i + ":\n");
+            // Visita os comandos dentro do ramo "caso"
+            ctx.cmd().forEach(var -> visitCmd(var));
+            resultado.append("break;\n");
         }
-
-        // Não possui retorno explícito, retorna 'null'.
         return null;
     }
     
@@ -884,28 +850,28 @@ public class AlgumaGeradorC extends AlgumaBaseVisitor {
     @Override
     public Void visitCmdPara(CmdParaContext ctx) {
         String id = ctx.IDENT().getText();
+        
 
         if (id != null) {
             resultado.append("for(")
                  .append(id)
                  .append(" = ");
-
             visitExp_aritmetica(ctx.exp_aritmetica(0));
 
             resultado.append("; ")
                  .append(id)
                  .append(" <= ");
-
+            
             visitExp_aritmetica(ctx.exp_aritmetica(1));
 
             resultado.append("; ")
                  .append(id)
                  .append("++){\n");
-
+            
             for(CmdContext cmdCtx: ctx.cmd()){
                 visitCmd(cmdCtx);
             }
-
+            
             resultado.append("}\n");
         }
 

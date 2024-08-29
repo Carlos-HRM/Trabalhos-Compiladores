@@ -55,7 +55,9 @@ public class TabelaDeSimbolos {
 
     // Retorna o tipo da entrada com o nome fornecido
     public TipoAlguma verificar(String nome) {
-        return tabela.get(nome).tipo;
+        if(tabela.containsKey(nome))
+            return tabela.get(nome).tipo;
+        return null;
     }
     
     public TabelaDeSimbolos(){

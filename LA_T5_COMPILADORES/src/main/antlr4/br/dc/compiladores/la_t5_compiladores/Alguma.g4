@@ -1,36 +1,44 @@
 grammar Alguma;
-//T1
-PALAVRA_CHAVE 
-        :   'algoritmo' | 'fim_algoritmo' | 'declare' | 'literal' | 'inteiro' | 'real' | 'leia' | 'escreva' 
-            | 'se' | 'entao' | 'fim_se'  | 'senao' | 'falso' | 'logico' 
-            | 'verdadeiro' | 'nao'  | 'enquanto' | 'fim_enquanto'
-            | 'retorne' | 'caso' | 'fim_caso' | 'seja'
-            | 'var' | 'para' | 'ate' | 'faca' | 'fim_para' 
-            | 'registro' | 'fim_registro'
-            | 'procedimento' | 'fim_procedimento' | 'funcao' | 'fim_funcao'
-            | 'tipo' | 'constante'
-        ;
+// Numeros inteiros e reais
+NUM_INT 
+    :   ('0'..'9')+ ;
 
-NUM_INT	: ('0'..'9')+
-	;
-NUM_REAL	:  NUM_INT + ('.' NUM_INT+)?
-	;
-OP_BOOLEANO :   'e' | 'ou' | 'nao' |   
-        ;
-IDENT   : ('a'..'z'|'A'..'Z')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
-	;
-CADEIA  : '"' ('\\"' | ~('"' | '\\' | '\n'))* '"'
-        ;
-OP_REL	:	'>' | '>=' | '<' | '<=' | '<>' | '='
-	;
-OP_ARIT	:	'+' | '-' | '*' | '/' | '%'
-	;
-SIMBOLOS:       ':' | ',' | '[' | ']' | '^' | '(' | ')' | '-' | '&' | '..' | '.' | '<-' 
-        ; 
-COMENTARIO: '{' ~('\n' | '\r' | '}')* '}' -> skip
-        ;
-WS: (' ' | '\t' | '\r' | '\n') -> skip
-        ;
+NUM_REAL 
+    :   ('0'..'9')+('.'('0'..'9')+)?
+    ;
+
+// Definicao de um digito
+Digito	
+    :	'0'..'9'
+    ; 
+
+// Identificadores
+IDENT	
+    :	([a-zA-Z])([a-zA-Z]|Digito|'_')*
+    ;
+
+//Ignora comentario, mas acusando erro de comentario nao fechado
+Comentario  
+    :  '{' ~[\r\n{}]* '}' [\r]? [\n]? -> skip
+    ; 
+
+Nao_Fechado  :  '{' (~('\n'|'\r'|'{'|'}'))* '\r'? '\n'?;
+
+CADEIA 	: '"' ( ESC_SEQ | ~('"'|'\\'|'\n'|'\r') )* '"';
+
+Literal_Nao_Fechada: '"' ( ESC_SEQ | ~('"'|'\\') )* '\r'? '\n'?;
+
+ESC_SEQ	: '\\\'' | '\\n';
+
+// Ignorando white-Space
+WS  :   ( ' '
+        | '\t'
+        | '\r'
+        | '\n'
+        ) {skip();}
+    ;
+
+ERR : ~('a');
 //T2
 programa: declaracoes 'algoritmo' corpo 'fim_algoritmo';
 
@@ -76,7 +84,7 @@ corpo: (declaracao_local)* (cmd)*;
 
 cmd: cmdLeia | cmdEscreva | cmdSe | cmdCaso | cmdPara | cmdEnquanto | cmdFaca | cmdAtribuicao | cmdChamada | cmdRetorne;
 
-cmdLeia: 'leia' '(' ('^')? identificador (',' ('^')? identificador)* ')';
+cmdLeia: 'leia' '(' '^'? identificador (',' '^'? identificador)* ')';
 
 cmdEscreva: 'escreva' '(' expressao (',' expressao)* ')';
 
@@ -124,7 +132,9 @@ parcela_unario: ('^')? identificador
                 | IDENT '(' expressao (',' expressao)* ')'
                 | NUM_INT
                 | NUM_REAL
-                | '(' expressao ')';
+                | parentesis_expressao;
+
+parentesis_expressao: '(' expressao ')';
 
 parcela_nao_unario: '&' identificador | CADEIA;
 
@@ -143,10 +153,3 @@ parcela_logica: ('verdadeiro' | 'falso') | exp_relacional;
 op_logico_1: 'ou';
 
 op_logica_2: 'e';
-
-CADEIA_ABERTA: '"' ('\\"' | ~('"' | '\\' | '\n'))* '\n'
-        ;
-COMENTARIO_ABERTO: '{' ~('}')* '\n'
-        ;
-ERRO    : .
-        ;
