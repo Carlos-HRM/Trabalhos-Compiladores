@@ -6,9 +6,7 @@ package br.dc.compiladores.la_t5_compiladores;
 
 import br.dc.compiladores.la_t5_compiladores.TabelaDeSimbolos.EntradaTabelaDeSimbolos;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class AlgumaSemantico extends AlgumaBaseVisitor {
@@ -469,7 +467,7 @@ public class AlgumaSemantico extends AlgumaBaseVisitor {
     }
 
     // Determina o tipo com base em uma string
-    private TabelaDeSimbolos.TipoAlguma determinarTipo(String valor) {
+    public static TabelaDeSimbolos.TipoAlguma determinarTipo(String valor) {
         TabelaDeSimbolos.TipoAlguma tipo = null;
         switch(valor) {
             case "literal":

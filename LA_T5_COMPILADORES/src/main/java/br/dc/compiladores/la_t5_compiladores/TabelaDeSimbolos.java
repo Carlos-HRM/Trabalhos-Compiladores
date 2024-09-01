@@ -54,7 +54,7 @@ public class TabelaDeSimbolos {
     }
 
     // Retorna o tipo da entrada com o nome fornecido
-    public TipoAlguma verificar(String nome) {
+    public TipoAlguma verificar(String nome){
         if(tabela.containsKey(nome))
             return tabela.get(nome).tipo;
         return null;
@@ -64,7 +64,7 @@ public class TabelaDeSimbolos {
         tabela = new HashMap<>();
         tipoTabela = new HashMap<>();
     }
-    
+
     // Construtor da classe TabelaDeSimbolos
     public TabelaDeSimbolos(TipoAlguma tipo) {
         tabela = new HashMap<>();

@@ -53,7 +53,7 @@ public class Principal {
                 AlgumaGeradorC agc = new AlgumaGeradorC();
                 agc.visitPrograma(programTree);
                 try(PrintWriter pw = new PrintWriter(args[1])) {
-                    pw.print(agc.resultado.toString());
+                    pw.print(agc.getSaida());
             }
         }
     }

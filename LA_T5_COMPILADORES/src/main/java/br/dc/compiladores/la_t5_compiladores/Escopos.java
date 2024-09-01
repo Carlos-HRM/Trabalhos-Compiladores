@@ -10,15 +10,15 @@ import java.util.List;
 public class Escopos {
 
     private LinkedList<TabelaDeSimbolos> pilhaDeTabelas;
-    
-    public Escopos(TabelaDeSimbolos tabela) {
-        pilhaDeTabelas = new LinkedList<>();
-        pilhaDeTabelas.push(tabela);
-    }
 
     public Escopos(TabelaDeSimbolos.TipoAlguma tipo) {
         pilhaDeTabelas = new LinkedList<>();
         criarNovoEscopo(tipo);
+    }
+    
+    public Escopos(TabelaDeSimbolos t){
+        pilhaDeTabelas = new LinkedList<>();
+        pilhaDeTabelas.push(t);
     }
 
     // Cria um novo escopo e o adiciona à pilha de tabelas
