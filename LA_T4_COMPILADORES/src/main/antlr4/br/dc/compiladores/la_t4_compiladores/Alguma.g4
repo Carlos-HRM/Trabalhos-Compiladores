@@ -1,155 +1,139 @@
 grammar Alguma;
-//T1
-PALAVRA_CHAVE 
-        :   'algoritmo' | 'fim_algoritmo' | 'declare' | 'literal' | 'inteiro' | 'real' | 'leia' | 'escreva' 
-            | 'se' | 'entao' | 'fim_se'  | 'senao' | 'falso' | 'logico' 
-            | 'verdadeiro' | 'nao'  | 'enquanto' | 'fim_enquanto'
-            | 'retorne' | 'caso' | 'fim_caso' | 'seja'
-            | 'var' | 'para' | 'ate' | 'faca' | 'fim_para' 
-            | 'registro' | 'fim_registro'
-            | 'procedimento' | 'fim_procedimento' | 'funcao' | 'fim_funcao'
-            | 'tipo' | 'constante'
-        ;
 
-NUM_INT	: ('0'..'9')+
-	;
-NUM_REAL	:  NUM_INT + ('.' NUM_INT+)?
-	;
-OP_BOOLEANO :   'e' | 'ou' | 'nao' |   
-        ;
-IDENT   : ('a'..'z'|'A'..'Z')('a'..'z'|'A'..'Z'|'0'..'9'|'_')*
-	;
-CADEIA  : '"' ('\\"' | ~('"' | '\\' | '\n'))* '"'
-        ;
-OP_REL	:	'>' | '>=' | '<' | '<=' | '<>' | '='
-	;
-OP_ARIT	:	'+' | '-' | '*' | '/' | '%'
-	;
-SIMBOLOS:       ':' | ',' | '[' | ']' | '^' | '(' | ')' | '-' | '&' | '..' | '.' | '<-' 
-        ; 
-COMENTARIO: '{' ~('\n' | '\r' | '}')* '}' -> skip
-        ;
-WS: (' ' | '\t' | '\r' | '\n') -> skip
-        ;
-//T2
-programa: declaracoes 'algoritmo' corpo 'fim_algoritmo';
+// Tokens necessários para a geração do código C.
+NUM_INT    : ('0'..'9')+ ;
 
-declaracoes: (decl_local_global)*;
+NUM_REAL   : ('0'..'9')+('.'('0'..'9')+)? ;
 
-decl_local_global: declaracao_local | declaracao_global;
+Digito     : '0'..'9' ;
 
+IDENT      : [a-zA-Z]([a-zA-Z]|Digito|'_')* ;
 
+Comentario : '{' ~[\r\n{}]* '}' [\r]? [\n]? -> skip ;
 
-declaracao_local: declaracao_tipo |
-                declaracao_var |
-                declaracao_const;
+Nao_Fechado: '{' (~('\n'|'\r'|'{'|'}'))* '\r'? '\n'?;
 
-declaracao_tipo: 'tipo' IDENT ':' tipo;
+CADEIA     : '"' ( ESC_SEQ | ~('"'|'\\'|'\n'|'\r') )* '"' ;
 
-declaracao_var: 'declare' variavel;
+Literal_Nao_Fechada: '"' ( ESC_SEQ | ~('"'|'\\') )* '\r'? '\n'?;
 
-declaracao_const: 'constante' IDENT ':' tipo_basico '=' valor_constante;
+ESC_SEQ    : '\\\'' | '\\n';
 
-variavel: identificador (',' identificador)* ':' tipo;
+WS         : ( ' ' | '\t' | '\r' | '\n' ) -> skip ;
 
-identificador: IDENT ('.' IDENT)* dimensao;
+ERR        : ~('a') -> skip ;
 
-dimensao: ('[' exp_aritmetica ']')*;
+// Regras principais levemente adaptadas para facilitar implementações.
+programa           : declaracoes 'algoritmo' corpo 'fim_algoritmo' ;
 
-tipo: registro | tipo_estendido;
+declaracoes         : (decl_local_global)* ;
 
-tipo_basico: 'literal' | 'inteiro' | 'real' | 'logico';
+decl_local_global  : declaracao_local | declaracao_global ;
 
-tipo_basico_ident: tipo_basico | IDENT;
+declaracao_local    : declaracao_tipo | declaracao_var | declaracao_const ;
 
-tipo_estendido: ('^')? tipo_basico_ident;
+declaracao_tipo     : 'tipo' IDENT ':' tipo ;
 
-valor_constante: CADEIA | NUM_INT | NUM_REAL | 'verdadeiro' | 'falso';
+declaracao_var      : 'declare' variavel ;
 
-registro: 'registro' (variavel)* 'fim_registro';
+declaracao_const    : 'constante' IDENT ':' tipo_basico '=' valor_constante ;
 
-declaracao_global: 'procedimento' IDENT '(' (parametros)? ')' (declaracao_local)* (cmd)* 'fim_procedimento'
-                | 'funcao' IDENT '(' (parametros)? ')' ':' tipo_estendido (declaracao_local)* (cmd)* 'fim_funcao';
+variavel            : identificador (',' identificador)* ':' tipo ;
 
-parametro: ('var')? identificador (',' identificador)* ':' tipo_estendido;
+identificador       : IDENT ('.' IDENT)* dimensao ;
 
-parametros: parametro (',' parametro)*;
+dimensao            : ('[' exp_aritmetica ']')* ;
 
-corpo: (declaracao_local)* (cmd)*;
+tipo                : registro | tipo_estendido ;
 
-cmd: cmdLeia | cmdEscreva | cmdSe | cmdCaso | cmdPara | cmdEnquanto | cmdFaca | cmdAtribuicao | cmdChamada | cmdRetorne;
+tipo_basico         : 'literal' | 'inteiro' | 'real' | 'logico' ;
 
-cmdLeia: 'leia' '(' ('^')? identificador (',' ('^')? identificador)* ')';
+tipo_basico_ident   : tipo_basico | IDENT ;
 
-cmdEscreva: 'escreva' '(' expressao (',' expressao)* ')';
+tipo_estendido      : ('^')? tipo_basico_ident ;
 
-cmdSe: 'se' expressao 'entao' (cmd)* ('senao' (cmd)*)? 'fim_se';
+valor_constante     : CADEIA | NUM_INT | NUM_REAL | 'verdadeiro' | 'falso' ;
 
-cmdCaso: 'caso' exp_aritmetica 'seja' selecao ('senao' (cmd)*)? 'fim_caso';
+registro            : 'registro' (variavel)* 'fim_registro' ;
 
-cmdPara: 'para' IDENT '<-' exp_aritmetica 'ate' exp_aritmetica 'faca' (cmd)* 'fim_para';
+declaracao_global   : 'procedimento' IDENT '(' (parametros)? ')' (declaracao_local)* (cmd)* 'fim_procedimento'
+    
+                    | 'funcao' IDENT '(' (parametros)? ')' ':' tipo_estendido (declaracao_local)* (cmd)* 'fim_funcao' ;
 
-cmdEnquanto: 'enquanto' expressao 'faca' (cmd)* 'fim_enquanto';
+parametro           : ('var')? identificador (',' identificador)* ':' tipo_estendido ;
 
-cmdFaca: 'faca' (cmd)* 'ate' expressao;
+parametros          : parametro (',' parametro)* ;
 
-cmdAtribuicao: ('^')? identificador '<-' expressao;
+corpo               : (declaracao_local)* (cmd)* ;
 
-cmdChamada: IDENT '(' expressao (',' expressao)* ')';
+cmd                 : cmdLeia | cmdEscreva | cmdSe | cmdCaso | cmdPara | cmdEnquanto | cmdFaca | cmdAtribuicao | cmdChamada | cmdRetorne ;
 
-cmdRetorne: 'retorne' expressao;
+cmdLeia             : 'leia' '(' ('^'? identificador (',' '^'? identificador)*)? ')' ;
 
-selecao: (item_selecao)*;
+cmdEscreva          : 'escreva' '(' expressao (',' expressao)* ')' ;
 
-item_selecao: constantes ':' (cmd)*;
+cmdSe               : 'se' expressao 'entao' (cmdIf+=cmd)* ('senao' (cmdElse+=cmd)*)? 'fim_se' ;
 
-constantes: numero_intervalo (',' numero_intervalo)*;
+cmdCaso             : 'caso' exp_aritmetica 'seja' selecao ('senao' (cmd)*)? 'fim_caso' ;
 
-numero_intervalo: (op_unario)? NUM_INT ('..' op_unario? NUM_INT)?;
+cmdPara             : 'para' IDENT '<-' exp_aritmetica 'ate' exp_aritmetica 'faca' (cmd)* 'fim_para' ;
 
-op_unario: '-';
+cmdEnquanto         : 'enquanto' expressao 'faca' (cmd)* 'fim_enquanto' ;
 
-exp_aritmetica: termo (op1 termo)*;
+cmdFaca             : 'faca' (cmd)* 'ate' expressao ;
 
-termo: fator (op2 fator)*;
+cmdAtribuicao       : ('^')? identificador '<-' expressao ;
 
-fator: parcela (op3 parcela)*;
+cmdChamada          : IDENT '(' expressao (',' expressao)* ')' ;
 
-op1: '+' | '-';
+cmdRetorne          : 'retorne' expressao ;
 
-op2: '*' | '/';
+selecao             : (item_selecao)* ;
 
-op3: '%';
+item_selecao        : constantes ':' (cmd)* ;
 
-parcela: (op_unario)? parcela_unario | parcela_nao_unario;
+constantes          : numero_intervalo (',' numero_intervalo)* ;
 
-parcela_unario: ('^')? identificador
-                | IDENT '(' expressao (',' expressao)* ')'
-                | NUM_INT
-                | NUM_REAL
-                | '(' expressao ')';
+numero_intervalo    : (op_unario)? NUM_INT ('..' (op_unario)? NUM_INT)? ;
 
-parcela_nao_unario: '&' identificador | CADEIA;
+op_unario           : '-' ;
 
-exp_relacional: exp_aritmetica (op_relacional exp_aritmetica)?;
+exp_aritmetica      : termo (op1 termo)* ;
 
-op_relacional: '=' | '<>' | '>=' | '<=' | '>' | '<';
+termo               : fator (op2 fator)* ;
 
-expressao: termo_logico (op_logico_1 termo_logico)*;
+fator               : parcela (op3 parcela)* ;
 
-termo_logico: fator_logico (op_logica_2 fator_logico)*;
+op1                 : '+' | '-' ;
 
-fator_logico: ('nao')? parcela_logica;
+op2                 : '*' | '/' ;
 
-parcela_logica: ('verdadeiro' | 'falso') | exp_relacional;
+op3                 : '%' ;
 
-op_logico_1: 'ou';
+parcela             : (op_unario)? parcela_unario | parcela_nao_unario ;
 
-op_logica_2: 'e';
+parcela_unario      : ('^')? identificador
+                    | IDENT '(' expressao (',' expressao)* ')'
+                    | NUM_INT
+                    | NUM_REAL
+                    | parentesis_expressao ;
 
-CADEIA_ABERTA: '"' ('\\"' | ~('"' | '\\' | '\n'))* '\n'
-        ;
-COMENTARIO_ABERTO: '{' ~('}')* '\n'
-        ;
-ERRO    : .
-        ;
+parentesis_expressao: '(' expressao ')' ;
+
+parcela_nao_unario  : '&' identificador | CADEIA ;
+
+exp_relacional      : exp_aritmetica (op_relacional exp_aritmetica)? ;
+
+op_relacional       : '=' | '<>' | '>=' | '<=' | '>' | '<' ;
+
+expressao           : termo_logico (op_logico_1 termo_logico)* ;
+
+termo_logico        : fator_logico (op_logica_2 fator_logico)* ;
+
+fator_logico        : ('nao')? parcela_logica ;
+
+parcela_logica      : ('verdadeiro' | 'falso') | exp_relacional ;
+
+op_logico_1         : 'ou' ;
+
+op_logica_2         : 'e' ;
